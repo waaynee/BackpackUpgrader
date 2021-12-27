@@ -4,7 +4,7 @@ using Oxide.Core.Plugins;
 
 namespace Oxide.Plugins
 {
-    [Info("BackpackUpgrader", "waayne", "1.0.0")]
+    [Info("Backpack Upgrader", "waayne", "1.0.2")]
     [Description("Allows players to upgrade their backpacks.")]
     internal class BackpackUpgrader : CovalencePlugin
     {
@@ -31,9 +31,9 @@ namespace Oxide.Plugins
             AddCovalenceCommand(SET_COMMAND, nameof(SetCommand), SET_PERMISSION);
         }
 
-        private void Loaded()
+        private void OnServerInitialized(bool initial)
         {
-            if (Backpacks == null)
+            if (Backpacks == null || !Backpacks.IsLoaded)
                 LogError(lang.GetMessage("BackpacksNotFound", this));
         }
 
@@ -42,8 +42,8 @@ namespace Oxide.Plugins
             lang.RegisterMessages(new Dictionary<string, string>
             {
                 ["BackpacksNotFound"] = "Backpacks is not loaded, get it at https://umod.org/plugins/backpacks",
-                ["HelpSet"] = "Use backpackupgrader.set <name> <rows> to set a player's backpack to x rows.",
-                ["HelpUpgrade"] = "Use backpackupgrader.upgrade <name> to upgrade a player's backpack.",
+                ["HelpSet"] = "Use backpackupgrader.set <name/id> <rows> to set a player's backpack to x rows.",
+                ["HelpUpgrade"] = "Use backpackupgrader.upgrade <name/id> to upgrade a player's backpack.",
                 ["Set"] = "Set {0}'s backpack to {1}x rows.",
                 ["Upgraded"] = "Upgraded {0}'s backpack to {1}x rows."
             }, this);
@@ -64,11 +64,11 @@ namespace Oxide.Plugins
         {
             if (args.Length <= 0)
             {
-                player.Reply(lang.GetMessage("HelpUpgrade", this));
+                player.Reply(lang.GetMessage("HelpUpgrade", this, player.Id));
                 return;
             }
 
-            IPlayer target = GetConnectedPlayerByName(args[0]);
+            IPlayer target = players.FindPlayer(args[0]);
 
             if (target == null)
                 return;
@@ -79,7 +79,7 @@ namespace Oxide.Plugins
                 if (!target.HasPermission(perm))
                 {
                     target.GrantPermission(perm);
-                    player.Reply(string.Format(lang.GetMessage("Upgraded", this), target.Name, row));
+                    player.Reply(string.Format(lang.GetMessage("Upgraded", this, player.Id), target.Name, row));
                     return;
                 }
             }
@@ -89,11 +89,11 @@ namespace Oxide.Plugins
         {
             if (args.Length <= 1)
             {
-                player.Reply(lang.GetMessage("HelpSet", this));
+                player.Reply(lang.GetMessage("HelpSet", this, player.Id));
                 return;
             }
 
-            IPlayer target = GetConnectedPlayerByName(args[0]);
+            IPlayer target = players.FindPlayer(args[0]);
 
             if (target == null)
                 return;
@@ -115,23 +115,12 @@ namespace Oxide.Plugins
                 }
             }
 
-            player.Reply(string.Format(lang.GetMessage("Set", this), target.Name, newRows));
+            player.Reply(string.Format(lang.GetMessage("Set", this, player.Id), target.Name, newRows));
         }
 
         private static string GetPermissionFromLevel(int row)
         {
             return row == 1 ? BACKPACKS_PERMISSION : BACKPACKS_PERMISSION + "." + row;
-        }
-
-        private IPlayer GetConnectedPlayerByName(string name)
-        {
-            IPlayer target = null;
-            foreach (IPlayer connectedPlayer in covalence.Players.Connected)
-            {
-                if (connectedPlayer.Name == name)
-                    target = connectedPlayer;
-            }
-            return target;
         }
     }
 }
